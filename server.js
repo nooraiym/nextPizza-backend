@@ -10,13 +10,35 @@ const app = express();
 const users = [];
 
 app.use(
+  // cors({
+  //   origin: process.env.CORS_ORIGIN,
+  //   methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  //   credentials: true,
+  // })
   cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: (origin, callback) => {
+      const allowedOrigins = [process.env.CORS_ORIGIN];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   })
 );
+app.options('*', cors());
 app.use(bodyParser.json());
+
+app.use((err, req, res, next) => {
+  if (err.name === 'Error' && err.message === 'Not allowed by CORS') {
+    res.status(403).json({ message: 'CORS error: Origin not allowed' });
+  } else {
+    next(err);
+  }
+});
+
 
 app.get('/api/hello', (req, res) => {
   res.json({ message: 'Hello from backend!' });
@@ -91,6 +113,5 @@ app.get('/profile', authenticateToken, (req, res) => {
   const { password, ...profile } = user;
   res.status(200).json(profile);
 });
-
 
 module.exports = app;
